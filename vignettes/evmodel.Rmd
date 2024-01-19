@@ -1,0 +1,92 @@
+---
+title: "EV model object"
+output: rmarkdown::html_document
+vignette: >
+  %\VignetteIndexEntry{EV model object}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(evprof)
+```
+
+The EV model object defined by `{evprof}` is generated with function `get_ev_model()`. This function returns an object of class `evmodel`. This object prints a summary of its components. The package provides an example of `evmodel` created in the [California study case article](https://mcanigueral.github.io/evprof/articles/california.html), using the charging sessions data provided by [ACN](https://acnportal.readthedocs.io/en/latest/).
+
+```{r ev_model}
+evprof::california_ev_model
+```
+
+The `evmodel`object has two components:
+
+* `metadata`: creation date, data time zone, if the scale of connection/energy models is natural or logarithmic, ...
+* `models`: tibble containing the different time-cycles models and information. The columns of this tibble are:
+
+    * `time_cycle`: character, given name to the time-cycle
+    * `months`: integer vector, corresponding months of the time-cycle
+    * `wdays`: integer vector, corresponding days of the time-cycle (week starting on day 1)
+    * `user_profiles`: tibble with every user profile GMM models. The columns of this tibble are:
+    
+        * `profile`: character vector, given name to the user profile
+        * `ratio`: numeric, share of daily sessions corresponding to this profile
+        * `connection_models`: tibble with the connection bi-variate GMM
+        * `energy_models`: tibble with the energy uni-variate GMM
+        
+
+The model itself is composed by multiple Gaussian models (GMM). The `connection_models` are Gaussian models of two variables (connection start time and connection duration) and the `energy_models` are built with a single variable (energy). Thus, the statistic features of `connection_models` are a centroid ($\mu$), a covariance matrix ($\Sigma$) and the weight or ratio of the corresponding model. Besides, the statistic features of `energy_models` are a mean ($\mu$), a standard deviation ($\sigma$) and the weight or ratio of the corresponding model.
+
+
+Let's take a look to these statistical features of the Worktime user profile for Working days in the California model:
+```{r}
+california_ev_model$models
+```
+```{r}
+workday_model <- california_ev_model$models$user_profiles[[1]]
+workday_model
+```
+
+```{r}
+worktime_model <- workday_model[2, ]
+```
+
+The connection model is a mixture of 3 bi-variate Gaussian Models:
+```{r}
+worktime_model$connection_models
+```
+
+To properly visualize the statistic features' values the function `print_connection_models_table` prints the LaTeX code and provides a nice table.
+
+```{r}
+latex_code <- print_connection_models_table(worktime_model, label = "tab:connection", caption = "Worktime connection Gaussian Models", full_width = FALSE)
+cat(latex_code)
+```
+
+
+
+On the other hand, the energy models can be based on the charging rate (`Power` variable) of the sessions. It has been observed that the energy demand increases together with the charging power (big vehicles have larger batteries and can charge at higher rates). Thus, function `get_energy_models` has the logical parameter `by_power` to fit the Energy Gaussian Models for the different groups of charging powers separately. In the case of California study case, we set `by_power=FALSE`, that's why we got the `Unknown` in the `energy_models` tibble:
+
+```{r}
+worktime_model$energy_models[[1]]
+```
+
+Thus, the energy model of all Worktime sessions is a mixture of 9 Gaussian models:
+
+```{r}
+worktime_model$energy_models[[1]]$energy_models[[1]]
+```
+
+The function `print_user_profile_energy_models_table` is provided to print the energy models in LaTeX and properly visualize the content of the models. It has to be specifically for a single user profile (unlike `print_connection_models_table`) since every user profile could have multiple models according to the different charging rates.
+
+```{r}
+latex_code <- print_user_profile_energy_models_table(worktime_model$energy_models[[1]], label = "tab:energy", caption = "Worktime energy Gaussian Models", full_width = FALSE)
+cat(latex_code)
+```
+
+
+
+
+
+
+
+
