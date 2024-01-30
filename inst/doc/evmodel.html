@@ -360,7 +360,7 @@ its components. The package provides an example of <code>evmodel</code>
 created in the <a href="https://mcanigueral.github.io/evprof/articles/california.html">California
 study case article</a>, using the charging sessions data provided by <a href="https://acnportal.readthedocs.io/en/latest/">ACN</a>.</p>
 <pre class="r"><code>evprof::california_ev_model</code></pre>
-<pre><code>## EV sessions model of class &quot;evmodel&quot;, created on 2023-05-16 
+<pre><code>## EV sessions model of class &quot;evmodel&quot;, created on 2024-01-29 
 ## Timezone of the model: America/Los_Angeles 
 ## The Gaussian Mixture Models of EV user profiles are built in:
 ##   - Connection Models: logarithmic scale
@@ -423,8 +423,8 @@ workday_model</code></pre>
 <pre><code>## # A tibble: 2 × 4
 ##   profile  ratio connection_models energy_models   
 ##   &lt;chr&gt;    &lt;dbl&gt; &lt;list&gt;            &lt;list&gt;          
-## 1 Visit    0.519 &lt;tibble [4 × 3]&gt;  &lt;tibble [1 × 2]&gt;
-## 2 Worktime 0.481 &lt;tibble [3 × 3]&gt;  &lt;tibble [1 × 2]&gt;</code></pre>
+## 1 Visit    0.460 &lt;tibble [3 × 3]&gt;  &lt;tibble [1 × 3]&gt;
+## 2 Worktime 0.540 &lt;tibble [3 × 3]&gt;  &lt;tibble [1 × 3]&gt;</code></pre>
 <pre class="r"><code>worktime_model &lt;- workday_model[2, ]</code></pre>
 <p>The connection model is a mixture of 3 bi-variate Gaussian
 Models:</p>
@@ -433,24 +433,9 @@ Models:</p>
 ## # A tibble: 3 × 3
 ##   mu        sigma         ratio
 ##   &lt;list&gt;    &lt;list&gt;        &lt;dbl&gt;
-## 1 &lt;dbl [2]&gt; &lt;dbl [2 × 2]&gt; 0.292
-## 2 &lt;dbl [2]&gt; &lt;dbl [2 × 2]&gt; 0.343
-## 3 &lt;dbl [2]&gt; &lt;dbl [2 × 2]&gt; 0.366</code></pre>
-<p>To properly visualize the statistic features’ values the function
-<code>print_connection_models_table</code> prints the LaTeX code and
-provides a nice table.</p>
-<pre class="r"><code>latex_code &lt;- print_connection_models_table(worktime_model, label = &quot;tab:connection&quot;, caption = &quot;Worktime connection Gaussian Models&quot;, full_width = FALSE)
-cat(latex_code)</code></pre>
-<pre><code>## \begin{table}
-## \resizebox{\linewidth}{!} {
-## \begin{tabular}{l|c|c|c}
-## \hline
-## User profile &amp; Centroid ($\mu$) &amp; Covariance ($\Sigma$) &amp; Share (\%) \\
-## \hline
-## \multirow{3}{*}{Worktime}&amp; $\begin{array}{cc} 1.9884 \\ 2.2609 \end{array}$&amp;$\begin{array}{cc} 0.0018 &amp; -0.0014 \\ -0.0014 &amp; 0.0096 \end{array}$&amp;29\\ \cline{2-4} &amp; $\begin{array}{cc} 1.8872 \\ 2.2682 \end{array}$&amp;$\begin{array}{cc} 0.0096 &amp; -0.0018 \\ -0.0018 &amp; 0.0064 \end{array}$&amp;34\\ \cline{2-4} &amp; $\begin{array}{cc} 2.2242 \\ 2.1199 \end{array}$&amp;$\begin{array}{cc} 0.0138 &amp; -0.0155 \\ -0.0155 &amp; 0.0383 \end{array}$&amp;37 \\ \hline
-## \end{tabular}}
-## \caption{\label{tab:connection}Worktime connection Gaussian Models}
-## \end{table}</code></pre>
+## 1 &lt;dbl [2]&gt; &lt;dbl [2 × 2]&gt; 0.305
+## 2 &lt;dbl [2]&gt; &lt;dbl [2 × 2]&gt; 0.428
+## 3 &lt;dbl [2]&gt; &lt;dbl [2 × 2]&gt; 0.267</code></pre>
 <p>On the other hand, the energy models can be based on the charging
 rate (<code>Power</code> variable) of the sessions. It has been observed
 that the energy demand increases together with the charging power (big
@@ -459,45 +444,27 @@ function <code>get_energy_models</code> has the logical parameter
 <code>by_power</code> to fit the Energy Gaussian Models for the
 different groups of charging powers separately. In the case of
 California study case, we set <code>by_power=FALSE</code>, that’s why we
-got the <code>Unknown</code> in the <code>energy_models</code>
-tibble:</p>
+got the <code>Unknown</code> in the <code>energy_models</code> tibble
+with a <code>ratio</code> of 1:</p>
 <pre class="r"><code>worktime_model$energy_models[[1]]</code></pre>
-<pre><code>## # A tibble: 1 × 2
-##   charging_rate energy_models   
-##   &lt;chr&gt;         &lt;list&gt;          
-## 1 Unknown       &lt;tibble [8 × 3]&gt;</code></pre>
+<pre><code>## # A tibble: 1 × 3
+##   charging_rate ratio energy_models   
+##   &lt;chr&gt;         &lt;int&gt; &lt;list&gt;          
+## 1 Unknown           1 &lt;tibble [8 × 3]&gt;</code></pre>
 <p>Thus, the energy model of all Worktime sessions is a mixture of 9
 Gaussian models:</p>
 <pre class="r"><code>worktime_model$energy_models[[1]]$energy_models[[1]]</code></pre>
 <pre><code>## # A tibble: 8 × 3
-##      mu  sigma  ratio
-##   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
-## 1 0.366 0.354  0.0392
-## 2 1.64  0.408  0.182 
-## 3 1.83  0.157  0.140 
-## 4 2.20  0.155  0.115 
-## 5 2.49  0.0912 0.127 
-## 6 2.67  0.130  0.116 
-## 7 3.07  0.275  0.186 
-## 8 3.62  0.124  0.0949</code></pre>
-<p>The function <code>print_user_profile_energy_models_table</code> is
-provided to print the energy models in LaTeX and properly visualize the
-content of the models. It has to be specifically for a single user
-profile (unlike <code>print_connection_models_table</code>) since every
-user profile could have multiple models according to the different
-charging rates.</p>
-<pre class="r"><code>latex_code &lt;- print_user_profile_energy_models_table(worktime_model$energy_models[[1]], label = &quot;tab:energy&quot;, caption = &quot;Worktime energy Gaussian Models&quot;, full_width = FALSE)
-cat(latex_code)</code></pre>
-<pre><code>## \begin{table}
-## \resizebox{\linewidth}{!} {
-## \begin{tabular}{l|c|c|c}
-## \hline
-## Charging rate (kW) &amp; Mean ($\mu$) &amp; Std. deviation ($\sigma$) &amp; Share (\%) \\
-## \hline
-## \multirow{8}{*}{Unknown}&amp; 0.3664&amp;0.3542&amp;4\\ \cline{2-4} &amp; 1.637&amp;0.4077&amp;18\\ \cline{2-4} &amp; 1.827&amp;0.1566&amp;14\\ \cline{2-4} &amp; 2.1967&amp;0.1551&amp;12\\ \cline{2-4} &amp; 2.4934&amp;0.0912&amp;13\\ \cline{2-4} &amp; 2.6708&amp;0.1303&amp;12\\ \cline{2-4} &amp; 3.0745&amp;0.2747&amp;19\\ \cline{2-4} &amp; 3.6219&amp;0.1243&amp;9 \\ \hline
-## \end{tabular}}
-## \caption{\label{tab:energy}Worktime energy Gaussian Models}
-## \end{table}</code></pre>
+##      mu sigma  ratio
+##   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+## 1  1.34 0.129 0.0204
+## 2  1.78 0.129 0.164 
+## 3  2.11 0.129 0.167 
+## 4  2.48 0.129 0.158 
+## 5  2.63 0.129 0.179 
+## 6  3.01 0.129 0.0969
+## 7  3.35 0.129 0.0941
+## 8  3.65 0.129 0.120</code></pre>
 
 
 

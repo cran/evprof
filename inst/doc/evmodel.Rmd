@@ -55,16 +55,8 @@ The connection model is a mixture of 3 bi-variate Gaussian Models:
 worktime_model$connection_models
 ```
 
-To properly visualize the statistic features' values the function `print_connection_models_table` prints the LaTeX code and provides a nice table.
 
-```{r}
-latex_code <- print_connection_models_table(worktime_model, label = "tab:connection", caption = "Worktime connection Gaussian Models", full_width = FALSE)
-cat(latex_code)
-```
-
-
-
-On the other hand, the energy models can be based on the charging rate (`Power` variable) of the sessions. It has been observed that the energy demand increases together with the charging power (big vehicles have larger batteries and can charge at higher rates). Thus, function `get_energy_models` has the logical parameter `by_power` to fit the Energy Gaussian Models for the different groups of charging powers separately. In the case of California study case, we set `by_power=FALSE`, that's why we got the `Unknown` in the `energy_models` tibble:
+On the other hand, the energy models can be based on the charging rate (`Power` variable) of the sessions. It has been observed that the energy demand increases together with the charging power (big vehicles have larger batteries and can charge at higher rates). Thus, function `get_energy_models` has the logical parameter `by_power` to fit the Energy Gaussian Models for the different groups of charging powers separately. In the case of California study case, we set `by_power=FALSE`, that's why we got the `Unknown` in the `energy_models` tibble with a `ratio` of 1:
 
 ```{r}
 worktime_model$energy_models[[1]]
@@ -75,18 +67,5 @@ Thus, the energy model of all Worktime sessions is a mixture of 9 Gaussian model
 ```{r}
 worktime_model$energy_models[[1]]$energy_models[[1]]
 ```
-
-The function `print_user_profile_energy_models_table` is provided to print the energy models in LaTeX and properly visualize the content of the models. It has to be specifically for a single user profile (unlike `print_connection_models_table`) since every user profile could have multiple models according to the different charging rates.
-
-```{r}
-latex_code <- print_user_profile_energy_models_table(worktime_model$energy_models[[1]], label = "tab:energy", caption = "Worktime energy Gaussian Models", full_width = FALSE)
-cat(latex_code)
-```
-
-
-
-
-
-
 
 
