@@ -29,8 +29,7 @@ cut_sessions(
 \item{log}{logical, whether to transform \code{ConnectionStartDateTime} and
 \code{ConnectionHours} variables to natural logarithmic scale (base = \code{exp(1)}).}
 
-\item{start}{integer, start hour in the x axis of the plot.
-This is only used when \code{log = FALSE}.}
+\item{start}{integer, start hour in the x axis of the plot.}
 }
 \value{
 session dataframe
@@ -39,15 +38,21 @@ session dataframe
 Cut outliers based on minimum and maximum limits of ConnectionHours and ConnectionStartDateTime variables
 }
 \examples{
+library(dplyr)
 # Localize the outlying sessions above a certain threshold
-plot_points(california_ev_sessions, start = 3)
+california_ev_sessions \%>\%
+  sample_frac(0.05) \%>\%
+  plot_points(start = 3)
 
 # For example sessions that start before 5 AM or that are
 # longer than 20 hours are considered outliers
-sessions_clean <- cut_sessions(
-  california_ev_sessions, start = 3,
-  connection_hours_max = 20, connection_start_min = 5,
-)
+sessions_clean <- california_ev_sessions \%>\%
+  sample_frac(0.05) \%>\%
+  cut_sessions(
+    start = 3,
+    connection_hours_max = 20,
+    connection_start_min = 5
+  )
 plot_points(sessions_clean, start = 3)
 
 }
