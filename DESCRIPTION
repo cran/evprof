@@ -1,6 +1,6 @@
 Package: evprof
 Title: Electric Vehicle Charging Sessions Profiling and Modelling
-Version: 1.1.1
+Version: 1.1.2
 Authors@R: 
     person("Marc", "Cañigueral", , "marc.canigueral@udg.edu", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0000-0001-9724-5829"))
@@ -24,9 +24,9 @@ Language: en-US
 LazyData: true
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2024-02-05 15:56:41 UTC; mcanigueral
+Packaged: 2024-03-14 14:18:04 UTC; mcanigueral
 Author: Marc Cañigueral [aut, cre, cph]
     (<https://orcid.org/0000-0001-9724-5829>)
 Maintainer: Marc Cañigueral <marc.canigueral@udg.edu>
 Repository: CRAN
-Date/Publication: 2024-02-05 22:50:06 UTC
+Date/Publication: 2024-03-14 14:50:05 UTC
