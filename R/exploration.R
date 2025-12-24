@@ -103,7 +103,7 @@ convert_time_dt_to_plot_num <- function(time_dt, start=getOption("evprof.start.h
 
 #' Logarithmic transformation to ConnectionStartDateTime and ConnectionHours variables
 #'
-#' @param sessions sessions data set in standard format.
+#' @param sessions sessions data set in  standard format.
 #' @param start integer, start hour in the x axis of the plot.
 #' @param base logarithmic base
 #'
@@ -129,8 +129,7 @@ mutate_to_log <- function(sessions, start=getOption("evprof.start.hour"), base =
 
 #' Scatter plot of sessions
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param start integer, start hour in the x axis of the plot.
 #' @param log logical, whether to transform `ConnectionStartDateTime` and
 #' `ConnectionHours` variables to natural logarithmic scale (base = `exp(1)`).
@@ -155,7 +154,10 @@ mutate_to_log <- function(sessions, start=getOption("evprof.start.hour"), base =
 #'   sample_frac(0.05) %>%
 #'   plot_points(log = TRUE)
 #'
-plot_points <- function(sessions, start=getOption("evprof.start.hour"), log = FALSE, ...) {
+plot_points <- function(
+  sessions, start=getOption("evprof.start.hour"),
+  log = getOption("evprof.log", FALSE), ...
+) {
   if (log) {
     sessions <- sessions %>% mutate_to_log(start)
   } else {
@@ -176,8 +178,7 @@ plot_points <- function(sessions, start=getOption("evprof.start.hour"), log = FA
 
 #' Density plot in 2D, considering Start time and Connection duration as variables
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param bins integer, parameter to pass to `ggplot2::stat_density_2d`
 #' @param start integer, start hour in the x axis of the plot.
 #' @param by variable to facet the plot. Character being "wday", "month" or "year", considering the week to start at wday=1.
@@ -198,12 +199,20 @@ plot_points <- function(sessions, start=getOption("evprof.start.hour"), log = FA
 #'   sample_frac(0.05) %>%
 #'   plot_density_2D(by = "wday", start = 3, bins = 15, log = FALSE)
 #'
-plot_density_2D <- function(sessions, bins=15, by = c("wday", "month", "year"), start=getOption("evprof.start.hour"), log = FALSE) {
-  sessions[["wday"]] <- factor(wday(sessions[["ConnectionStartDateTime"]], week_start = 1))
-  sessions[["month"]] <- factor(month(sessions[["ConnectionStartDateTime"]]))
-  sessions[["year"]] <- factor(year(sessions[["ConnectionStartDateTime"]]))
+plot_density_2D <- function(
+  sessions, bins=15, by = c("wday", "month", "year"),
+  start=getOption("evprof.start.hour"),
+  log = getOption("evprof.log", FALSE)
+) {
+  sessions[["wday"]] <- 
+    factor(wday(sessions[["ConnectionStartDateTime"]], week_start = 1))
+  sessions[["month"]] <- 
+    factor(month(sessions[["ConnectionStartDateTime"]]))
+  sessions[["year"]] <- 
+    factor(year(sessions[["ConnectionStartDateTime"]]))
   if (!log) {
-    sessions[["ConnectionStartDateTime"]] <- convert_time_dt_to_plot_dt(sessions[["ConnectionStartDateTime"]], start)
+    sessions[["ConnectionStartDateTime"]] <- 
+      convert_time_dt_to_plot_dt(sessions[["ConnectionStartDateTime"]], start)
   } else {
     sessions <- mutate_to_log(sessions, start)
   }
@@ -212,7 +221,7 @@ plot_density_2D <- function(sessions, bins=15, by = c("wday", "month", "year"), 
     stat_density2d(geom = "polygon", aes(fill = after_stat(.data$nlevel)), bins = bins) +
     scale_fill_viridis_c(name = 'Density of \nsessions\n') +
     # scale_x_datetime(date_labels = '%H:%M', date_breaks = '4 hour') +
-    xlab('\nSession start time') + ylab('Number of connection hours\n') +
+    xlab('\nConnection start time') + ylab('Number of connection hours\n') +
     theme_light()
 
   if (by == "wday") {
@@ -248,8 +257,7 @@ plot_density_2D <- function(sessions, bins=15, by = c("wday", "month", "year"), 
 
 #' Density plot in 3D, considering Start time and Connection duration as variables
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param start integer, start hour in the x axis of the plot.
 #' @param eye list containing x, y and z points of view. Example: `list(x = -1.5, y = -1.5, z = 1.5)`
 #' @param log logical, whether to transform `ConnectionStartDateTime` and
@@ -268,7 +276,11 @@ plot_density_2D <- function(sessions, bins=15, by = c("wday", "month", "year"), 
 #'   sample_frac(0.05) %>%
 #'   plot_density_3D(start = 3)
 #'
-plot_density_3D <- function(sessions, start=getOption("evprof.start.hour"), eye = list(x = -1.5, y = -1.5, z = 1.5), log = FALSE) {
+plot_density_3D <- function(
+  sessions, start=getOption("evprof.start.hour"), 
+  eye = list(x = -1.5, y = -1.5, z = 1.5), 
+  log = getOption("evprof.log", FALSE)
+) {
   if (!log) {
     sessions["ConnectionStartDateTime"] <- convert_time_dt_to_plot_num(sessions[["ConnectionStartDateTime"]], start)
   } else {
@@ -283,7 +295,7 @@ plot_density_3D <- function(sessions, start=getOption("evprof.start.hour"), eye 
     layout(
       scene = list(
         xaxis = list(title = "Connection start time", titlefont = list(size = 12), tickfont = list(size = 10)),
-        yaxis = list(title = "Connection hours", titlefont = list(size = 12), tickfont = list(size = 10)),
+        yaxis = list(title = "Number of connection hours", titlefont = list(size = 12), tickfont = list(size = 10)),
         zaxis = list(title = "Density of sessions", titlefont = list(size = 12), tickfont = list(size = 10)),
         camera = list(eye = eye)
       )) %>%
@@ -293,9 +305,7 @@ plot_density_3D <- function(sessions, start=getOption("evprof.start.hour"), eye 
 
 #' Statistic summary of sessions features
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format standard format
 #' @param .funs A function to compute, e.g. `mean`, `max`, etc.
 #' @param vars character vector, variables to compute the histogram for
 #'
@@ -308,7 +318,9 @@ plot_density_3D <- function(sessions, start=getOption("evprof.start.hour"), eye 
 #' summarise_sessions(california_ev_sessions, mean)
 #'
 #'
-summarise_sessions <- function(sessions, .funs, vars = evprof::sessions_summary_feature_names) {
+summarise_sessions <- function(
+  sessions, .funs, vars = evprof::sessions_summary_feature_names
+) {
   sessions %>%
     select(any_of(vars)) %>%
     summarise_all(.funs)
@@ -317,8 +329,7 @@ summarise_sessions <- function(sessions, .funs, vars = evprof::sessions_summary_
 
 #' Histogram of a variable from sessions data set
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param var character, column name to compute the histogram for
 #' @param binwidth integer, with of histogram bins
 #'
@@ -345,8 +356,7 @@ plot_histogram <- function(sessions, var, binwidth=1) {
 
 #' Grid of multiple variable histograms
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param vars vector of characters, variables to plot
 #' @param binwidths vector of integers, binwidths of each variable histogram.
 #' The length of the vector must correspond to the length of the `vars` parameter.
@@ -363,7 +373,10 @@ plot_histogram <- function(sessions, var, binwidth=1) {
 #' plot_histogram_grid(california_ev_sessions)
 #' plot_histogram_grid(california_ev_sessions, vars = c("Energy", "Power"))
 #'
-plot_histogram_grid <- function(sessions, vars=evprof::sessions_summary_feature_names, binwidths=rep(1, length(vars)), nrow = NULL, ncol = NULL) {
+plot_histogram_grid <- function(
+  sessions, vars=evprof::sessions_summary_feature_names, 
+  binwidths=rep(1, length(vars)), nrow = NULL, ncol = NULL
+) {
   hist_list <- purrr::map2(vars, binwidths, ~ plot_histogram(sessions, .x, .y))
   cowplot::plot_grid(plotlist = hist_list, nrow = nrow, ncol = ncol)
 }
@@ -375,8 +388,7 @@ plot_histogram_grid <- function(sessions, vars=evprof::sessions_summary_feature_
 
 #' Get charging rates distribution in percentages
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param unit character, lubridate `floor_date` unit parameter
 #'
 #' @returns tibble
@@ -416,8 +428,7 @@ get_charging_rates_distribution <- function(sessions, unit="year") {
 
 #' Get daily number of sessions given a range of years, months and weekdays
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param years vector of integers, range of years to consider
 #' @param months vector of integers, range of months to consider
 #' @param wdays vector of integers, range of weekdays to consider
@@ -448,8 +459,7 @@ get_daily_n_sessions <- function(sessions, years, months, wdays) {
 
 #' Get the daily average number of sessions given a range of years, months and weekdays
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param years vector of integers, range of years to consider
 #' @param months vector of integers, range of months to consider
 #' @param wdays vector of integers, range of weekdays to consider
@@ -471,5 +481,4 @@ get_daily_avg_n_sessions <- function(sessions, years, months, wdays) {
     mean %>%
     round
 }
-
 

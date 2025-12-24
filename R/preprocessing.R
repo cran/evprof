@@ -4,8 +4,7 @@
 
 #' Cut outliers based on minimum and maximum limits of ConnectionHours and ConnectionStartDateTime variables
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param connection_hours_min numeric, minimum of connection hours (duration). If NA the minimum value is considered.
 #' @param connection_hours_max numeric, maximum of connection hours (duration). If NA the maximum value is considered.
 #' @param connection_start_min numeric, minimum hour of connection start (hour as numeric). If NA the minimum value is considered.
@@ -40,7 +39,8 @@
 cut_sessions <- function(sessions,
                          connection_hours_min = NA, connection_hours_max = NA,
                          connection_start_min = NA, connection_start_max = NA,
-                         log = FALSE, start = getOption("evprof.start.hour")) {
+                         log = getOption("evprof.log", FALSE),
+                         start = getOption("evprof.start.hour")) {
 
   if (log) {
     sessions_log <- mutate_to_log(sessions, start)
@@ -76,8 +76,7 @@ cut_sessions <- function(sessions,
 #' Plot the kNN (k-nearest neighbors) distance plot to visually detect the
 #' "elbow" and define an appropriate value for `eps` DBSCAN parameter.
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param MinPts integer, DBSCAN MinPts parameter. If null, a value of 200 will be considered.
 #' @param log logical, whether to transform `ConnectionStartDateTime` and
 #' `ConnectionHours` variables to natural logarithmic scale (base = `exp(1)`).
@@ -106,7 +105,8 @@ cut_sessions <- function(sessions,
 #'   sample_frac(0.05) %>%
 #'   plot_kNNdist(start = 3, log = TRUE)
 #'
-plot_kNNdist <- function(sessions, MinPts = NULL, log = FALSE,
+plot_kNNdist <- function(sessions, MinPts = NULL,
+                         log = getOption("evprof.log", FALSE), 
                          start = getOption("evprof.start.hour")) {
   if (log) {
     sessions <- mutate_to_log(sessions, start)
@@ -131,8 +131,7 @@ plot_kNNdist <- function(sessions, MinPts = NULL, log = FALSE,
 
 #' Get the minPts and eps values for DBSCAN to label only a specific percentage as noise
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param MinPts DBSCAN MinPts parameter
 #' @param eps0 DBSCAN eps parameter corresponding to the elbow of kNN dist plot
 #' @param noise_th noise threshold
@@ -150,7 +149,8 @@ plot_kNNdist <- function(sessions, MinPts = NULL, log = FALSE,
 #'
 get_dbscan_params <- function(sessions, MinPts, eps0, noise_th = 2,
                               eps_offset_pct = 0.9, eps_inc_pct = 0.02,
-                              log = FALSE, start = getOption("evprof.start.hour")) {
+                              log = getOption("evprof.log", FALSE), 
+                              start = getOption("evprof.start.hour")) {
   if (log) {
     sessions <- mutate_to_log(sessions, start)
   } else {
@@ -168,7 +168,7 @@ get_dbscan_params <- function(sessions, MinPts, eps0, noise_th = 2,
     if (eps <= 0) break
     sessions_cluster <- sessions[,c("ConnectionStartDateTime", "ConnectionHours")]
     dbscan_clusters <- dbscan::dbscan(sessions_cluster, eps, MinPts)
-    noise <- round(sum(dbscan_clusters$cluster == 0)/length(dbscan_clusters$cluster)*100, 2)
+    noise <- round(sum(dbscan_clusters$cluster == 0)/length(dbscan_clusters$cluster)*100)
     noise_table <- bind_rows(noise_table, c(MinPts = MinPts, eps = eps, noise = noise))
     noise_table <- arrange(noise_table, !!sym("noise"))
     if ((noise_table$noise[1] <= noise_th) & (noise_table$noise[nrow(noise_table)] >= noise_th)) break
@@ -190,8 +190,7 @@ get_dbscan_params <- function(sessions, MinPts, eps0, noise_th = 2,
 
 #' Detect outliers
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param MinPts MinPts parameter for DBSCAN clustering
 #' @param eps eps parameter for DBSCAN clustering
 #' @param noise_th noise threshold
@@ -211,7 +210,8 @@ get_dbscan_params <- function(sessions, MinPts, eps0, noise_th = 2,
 #'   detect_outliers(start = 3, noise_th = 5, eps = 2.5)
 #'
 detect_outliers <- function(sessions, MinPts=NULL, eps=NULL, noise_th = 2,
-                            log = FALSE, start = getOption("evprof.start.hour")) {
+                            log = getOption("evprof.log", FALSE),
+                            start = getOption("evprof.start.hour")) {
 
   if (is.null(MinPts) | is.null(eps)) {
     if (is.null(MinPts)) MinPts <- 200
@@ -250,8 +250,7 @@ detect_outliers <- function(sessions, MinPts=NULL, eps=NULL, noise_th = 2,
 
 #' Drop outliers
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #'
 #' @returns sessions without outliers nor column `Outlier`
 #' @export
@@ -281,8 +280,7 @@ drop_outliers <- function(sessions) {
 
 #' Plot outlying sessions
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param start integer, start hour in the x axis of the plot.
 #' @param log logical, whether to transform `ConnectionStartDateTime` and
 #' `ConnectionHours` variables to natural logarithmic scale (base = `exp(1)`).
@@ -301,7 +299,10 @@ drop_outliers <- function(sessions) {
 #' plot_outliers(sessions_outliers, start = 3)
 #' plot_outliers(sessions_outliers, start = 3, log = TRUE)
 #'
-plot_outliers <- function(sessions, start=getOption("evprof.start.hour"), log = FALSE, ...) {
+plot_outliers <- function(
+  sessions, start=getOption("evprof.start.hour"), 
+  log = getOption("evprof.log", FALSE), ...
+) {
   outliers_pct <- round(sum(sessions[['Outlier']])/nrow(sessions)*100, 2)
   if (log) {
     sessions <- mutate_to_log(sessions, start)
@@ -371,8 +372,7 @@ plot_division_lines <- function(ggplot_points, n_lines, division_hour) {
 
 #' Divide sessions by disconnection day
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param division_hour Hour to divide the groups according to disconnection time
 #' @param start integer, start hour in the x axis of the plot.
 #'
@@ -418,8 +418,7 @@ divide_by_disconnection <- function(sessions, division_hour, start = getOption("
 
 #' Divide sessions by time-cycle
 #'
-#' @param sessions tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html).
+#' @param sessions tibble, sessions data set in evprof standard format
 #' @param months_cycles list containing Monthly cycles
 #' @param wdays_cycles list containing Weekdays cycles
 #' @param start integer, start hour in the x axis of the plot.
@@ -448,7 +447,10 @@ divide_by_disconnection <- function(sessions, division_hour, start = getOption("
 #' plot_points(sessions_timecycles) +
 #'   facet_wrap(vars(Timecycle))
 #'
-divide_by_timecycle <- function(sessions, months_cycles = list(1:12), wdays_cycles = list(1:5, 6:7), start = getOption("evprof.start.hour")) {
+divide_by_timecycle <- function(
+  sessions, months_cycles = list(1:12), wdays_cycles = list(1:5, 6:7), 
+  start = getOption("evprof.start.hour")
+) {
 
   cycles_tbl <- tibble(
     months = rep(months_cycles, each = length(wdays_cycles)),

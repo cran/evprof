@@ -1,5 +1,3 @@
-
-
 # Connection models -------------------------------------------------------
 
 #' Get a tibble of connection GMM for every user profile
@@ -65,26 +63,31 @@
 #' )
 #'
 #'
-get_connection_models <- function(subsets_clustering = list(), clusters_definition = list()) {
-
+get_connection_models <- function(
+  subsets_clustering = list(),
+  clusters_definition = list()
+) {
   subsets_n_sessions <- map_dbl(subsets_clustering, ~ nrow(.x[["sessions"]]))
-  subsets_ratios <- subsets_n_sessions/sum(subsets_n_sessions)
+  subsets_ratios <- subsets_n_sessions / sum(subsets_n_sessions)
 
   pmap_dfr(
     tibble(subsets_clustering, clusters_definition, subsets_ratios),
     ~ ..1[["models"]] %>%
       arrange(.data$cluster) %>%
       mutate(profile = ..2[["profile"]]) %>%
-      select(- "cluster") %>%
+      select(-"cluster") %>%
       group_by(.data$profile) %>%
       summarise(
-        "profile_ratio" = sum(.data$ratio)* ..3,
-        "connection_models" = list(tibble(mu = !!sym('mu'), sigma = !!sym('sigma'), ratio = !!sym('ratio')/sum(!!sym('ratio'))))
+        "profile_ratio" = sum(.data$ratio) * ..3,
+        "connection_models" = list(tibble(
+          mu = !!sym('mu'),
+          sigma = !!sym('sigma'),
+          ratio = !!sym('ratio') / sum(!!sym('ratio'))
+        ))
       ) %>%
       rename(ratio = "profile_ratio")
   )
 }
-
 
 
 # Energy models -----------------------------------------------------------
@@ -100,7 +103,10 @@ get_connection_models <- function(subsets_clustering = list(), clusters_definiti
 #'
 #' @importFrom mclust densityMclust cdfMclust
 #'
-get_energy_model_mclust_object <- function(energy_vct, log = TRUE) {
+get_energy_model_mclust_object <- function(
+  energy_vct,
+  log = getOption("evprof.log", TRUE)
+) {
   if (log) {
     energy_vct <- log(energy_vct)
     energy_vct <- energy_vct[!is.infinite(energy_vct)]
@@ -109,7 +115,9 @@ get_energy_model_mclust_object <- function(energy_vct, log = TRUE) {
   uvGMM <- densityMclust(energy_vct, plot = FALSE)
   cdf_uvGMM <- cdfMclust(uvGMM)
   th_min <- cdf_uvGMM$x[which(cdf_uvGMM$y >= 0.02)[1]]
-  th_max <- cdf_uvGMM$x[which(cdf_uvGMM$y <= 0.98)[length(which(cdf_uvGMM$y <= 0.98))]]
+  th_max <- cdf_uvGMM$x[which(cdf_uvGMM$y <= 0.98)[length(which(
+    cdf_uvGMM$y <= 0.98
+  ))]]
   energy_vct <- energy_vct[energy_vct >= th_min & energy_vct <= th_max]
   densityMclust(energy_vct, plot = FALSE)
 }
@@ -145,7 +153,7 @@ get_energy_model_parameters <- function(mclust_obj) {
 #' or decrease the number of Gaussian components.
 #'
 #' @param sessions_profiles tibble, sessions data set in evprof
-#' [standard format](https://mcanigueral.github.io/evprof/articles/sessions-format.html)
+#' [ standard format](https://resourcefully-dev.github.io/evprof/articles/sessions-format.html)
 #' with user profile attribute `Profile`
 #' @param log logical, whether to transform `ConnectionStartDateTime` and
 #' `ConnectionHours` variables to natural logarithmic scale (base = `exp(1)`).
@@ -183,12 +191,18 @@ get_energy_model_parameters <- function(mclust_obj) {
 #'
 #'
 #'
-get_energy_models <- function(sessions_profiles, log = TRUE, by_power = FALSE) {
+get_energy_models <- function(
+  sessions_profiles,
+  log = getOption("evprof.log", TRUE),
+  by_power = FALSE
+) {
   if (by_power) {
     n_different_power <- unique(sessions_profiles$Power)
     if (length(n_different_power) > 5) {
-      message("Warning: more than 5 different charging rates in the data.
-              You may have to round the `Power` values for more generic models.")
+      message(
+        "Warning: more than 5 different charging rates in the data.
+              You may have to round the `Power` values for more generic models."
+      )
     }
     sessions_profiles$ChargingRate <- sessions_profiles$Power
   } else {
@@ -205,11 +219,17 @@ get_energy_models <- function(sessions_profiles, log = TRUE, by_power = FALSE) {
       n_sessions = n(),
     ) %>%
     mutate(
-      ratio = .data$n_sessions/sum(.data$n_sessions),
+      ratio = .data$n_sessions / sum(.data$n_sessions),
       mclust = map(.data$energy, ~ get_energy_model_mclust_object(.x, log)),
       energy_models = map(.data$mclust, ~ get_energy_model_parameters(.x))
     ) %>%
-    select(all_of(c("profile", "charging_rate", "ratio", "energy_models", "mclust"))) %>%
+    select(all_of(c(
+      "profile",
+      "charging_rate",
+      "ratio",
+      "energy_models",
+      "mclust"
+    ))) %>%
     group_by(.data$profile) %>%
     nest() %>%
     rename(energy_models = "data") %>%
@@ -226,11 +246,12 @@ get_energy_models <- function(sessions_profiles, log = TRUE, by_power = FALSE) {
 #' @export
 #'
 #' @importFrom purrr map set_names
-#' @importFrom cowplot plot_grid
-#' @importFrom ggplot2 ggplot aes geom_histogram geom_line theme_light labs theme unit after_stat
+#' @importFrom cowplot plot_grid get_legend
+#' @importFrom ggplot2 ggplot aes geom_histogram geom_line theme_light labs theme unit after_stat scale_color_manual
 #' @importFrom dplyr tibble mutate %>%
 #' @importFrom mclust predict.densityMclust
-#' @importFrom grDevices extendrange
+#' @importFrom grDevices extendrange hcl
+#' @importFrom stats setNames
 #' @importFrom rlang .data
 #'
 #' @examples
@@ -246,20 +267,37 @@ get_energy_models <- function(sessions_profiles, log = TRUE, by_power = FALSE) {
 #' plot_energy_models(energy_models)
 #'
 #'
-plot_energy_models <- function(energy_models, nrow=2) {
-
+plot_energy_models <- function(energy_models, nrow = 2) {
   plot_list <- list()
+  legend_plot <- NULL
+  rate_levels <- sort(unique(unlist(purrr::map(
+    energy_models$energy_models,
+    "charging_rate"
+  ))))
+  rate_levels_chr <- as.character(rate_levels)
+  palette <- grDevices::hcl(
+    h = seq(15, 375, length.out = length(rate_levels_chr) + 1),
+    l = 65,
+    c = 100
+  )[seq_along(rate_levels_chr)]
+  palette <- stats::setNames(palette, nm = rate_levels_chr)
 
   for (prof in unique(energy_models$profile)) {
-
     em_df <- energy_models$energy_models[[which(energy_models$profile == prof)]]
 
     histogram_data <- unlist(purrr::map(em_df$mclust, ~ .x$data))
 
-    profile_plot <- ggplot(data = tibble(x = histogram_data), aes(x = .data[["x"]])) +
+    profile_plot <- ggplot(
+      data = tibble(x = histogram_data),
+      aes(x = .data[["x"]])
+    ) +
       geom_histogram(
-        aes(y = after_stat(.data$density)), color = 'darkgrey', fill = 'grey',
-        alpha = 0.2, show.legend = TRUE, binwidth = 0.03
+        aes(y = after_stat(.data$density)),
+        color = 'darkgrey',
+        fill = 'grey',
+        alpha = 0.2,
+        show.legend = TRUE,
+        binwidth = 0.03
       ) +
       labs(x = "Energy charged", y = "Density", title = prof) +
       theme_light()
@@ -279,12 +317,23 @@ plot_energy_models <- function(energy_models, nrow=2) {
       .id = "charging_rate"
     )
 
+    lines_data[["charging_rate"]] <- factor(
+      lines_data[["charging_rate"]],
+      levels = rate_levels_chr,
+      ordered = TRUE
+    )
+
     profile_plot2 <- profile_plot +
       geom_line(
         data = lines_data,
-        aes(x = .data[["x"]], y = .data[["y"]], color = .data[["charging_rate"]]),
+        aes(
+          x = .data[["x"]],
+          y = .data[["y"]],
+          color = .data[["charging_rate"]]
+        ),
         linewidth = 1
       ) +
+      scale_color_manual(values = palette, drop = FALSE) +
       labs(color = "Charging rate (kW)") +
       theme(
         legend.position = "bottom",
@@ -296,12 +345,29 @@ plot_energy_models <- function(energy_models, nrow=2) {
         theme(
           legend.position = "none"
         )
+    } else if (is.null(legend_plot)) {
+      legend_plot <- profile_plot2
     }
 
-    plot_list[[prof]] <- profile_plot2
+    plot_list[[prof]] <- profile_plot2 +
+      theme(
+        legend.position = "none"
+      )
   }
 
-  cowplot::plot_grid(plotlist = plot_list, nrow = nrow)
+  plot_grid_main <- cowplot::plot_grid(plotlist = plot_list, nrow = nrow)
+
+  if (!is.null(legend_plot)) {
+    legend <- cowplot::get_legend(legend_plot)
+    cowplot::plot_grid(
+      plot_grid_main,
+      legend,
+      ncol = 1,
+      rel_heights = c(1, 0.12)
+    )
+  } else {
+    plot_grid_main
+  }
 }
 
 
@@ -367,16 +433,19 @@ plot_energy_models <- function(energy_models, nrow=2) {
 #'
 #' # Plot all bi-variable GMM (clusters) with the colors corresponding
 #' # to their assigned user profile
-#' plot_model_clusters(
+#' plot_connection_models(
 #'   subsets_clustering = list(sessions_clusters),
 #'   clusters_definition = list(clusters_definitions),
 #'   profiles_ratios = connection_models[c("profile", "ratio")]
 #' )
 #'
 #'
-plot_model_clusters <- function(subsets_clustering = list(), clusters_definition = list(),
-                                profiles_ratios, log = TRUE) {
-
+plot_connection_models <- function(
+  subsets_clustering = list(),
+  clusters_definition = list(),
+  profiles_ratios,
+  log = getOption("evprof.log", TRUE)
+) {
   cluster_profiles_names <- unlist(map(clusters_definition, ~ .x[["profile"]]))
 
   plot_bivarGMM(
@@ -386,15 +455,21 @@ plot_model_clusters <- function(subsets_clustering = list(), clusters_definition
     log = log
   ) +
     labs(color = "Profile") +
-    scale_color_discrete(labels = paste0(
-      unique(cluster_profiles_names),
-      " (",
-      round(profiles_ratios[["ratio"]][match(unique(cluster_profiles_names), profiles_ratios[["profile"]])]*100),
-      "%)"
-    ))
+    scale_color_discrete(
+      labels = paste0(
+        unique(cluster_profiles_names),
+        " (",
+        round(
+          profiles_ratios[["ratio"]][match(
+            unique(cluster_profiles_names),
+            profiles_ratios[["profile"]]
+          )] *
+            100
+        ),
+        "%)"
+      )
+    )
 }
-
-
 
 
 # Save the models ---------------------------------------------------------
@@ -443,9 +518,16 @@ plot_model_clusters <- function(subsets_clustering = list(), clusters_definition
 #' )
 #'
 #'
-get_ev_model <- function(names, months_lst = list(1:12, 1:12), wdays_lst = list(1:5, 6:7),
-                         connection_GMM, energy_GMM, connection_log, energy_log, data_tz) {
-
+get_ev_model <- function(
+  names,
+  months_lst = list(1:12, 1:12),
+  wdays_lst = list(1:5, 6:7),
+  connection_GMM,
+  energy_GMM,
+  connection_log,
+  energy_log,
+  data_tz
+) {
   # Remove `mclust` component from energy models tibble
   energy_GMM <- map(
     energy_GMM,
@@ -453,13 +535,14 @@ get_ev_model <- function(names, months_lst = list(1:12, 1:12), wdays_lst = list(
       mutate(
         energy_models = map(
           .data$energy_models,
-          ~ select(.x, - "mclust")
+          ~ select(.x, -"mclust")
         )
       )
-    )
+  )
 
   GMM <- map2(
-    connection_GMM, energy_GMM,
+    connection_GMM,
+    energy_GMM,
     ~ left_join(.x, .y, by = 'profile')
   )
 
@@ -478,14 +561,14 @@ get_ev_model <- function(names, months_lst = list(1:12, 1:12), wdays_lst = list(
     )
   )
   class(ev_model) <- "evmodel"
-  return( ev_model )
+  return(ev_model)
 }
 
 
 #' Save the EV model object of class `evmodel` to a JSON file
 #'
 #' @param evmodel object of class `evmodel`
-#' (see this [link](https://mcanigueral.github.io/evprof/articles/evmodel.html) for more information)
+#' (see this [link](https://resourcefully-dev.github.io/evprof/articles/evmodel.html) for more information)
 #' @param file character string with the path or name of the file
 #'
 #' @returns nothing but saves the `evmodel` object in a JSON file
@@ -532,7 +615,8 @@ read_ev_model <- function(file) {
   class(evmodel) <- "evmodel"
   evmodel$models <- dplyr::as_tibble(evmodel$models)
   evmodel$models$user_profiles <- purrr::map(
-    evmodel$models$user_profiles, tidy_models
+    evmodel$models$user_profiles,
+    tidy_models
   )
   return(evmodel)
 }
@@ -543,7 +627,9 @@ lst_df_to_tbl <- function(df_lst) {
 
 tidy_models <- function(user_models_df) {
   user_models_df <- as_tibble(user_models_df)
-  user_models_df$connection_models <- lst_df_to_tbl(user_models_df$connection_models)
+  user_models_df$connection_models <- lst_df_to_tbl(
+    user_models_df$connection_models
+  )
   user_models_df$energy_models <- purrr::map(
     user_models_df$energy_models,
     ~ .x %>%
@@ -554,12 +640,10 @@ tidy_models <- function(user_models_df) {
 }
 
 
-
-
 #' `print` method for `evmodel` object class
 #'
 #' @param x  `evmodel` object
-#' (see this [link](https://mcanigueral.github.io/evprof/articles/evmodel.html) for more information)
+#' (see this [link](https://resourcefully-dev.github.io/evprof/articles/evmodel.html) for more information)
 #' @param ... further arguments passed to or from other methods.
 #'
 #' @returns nothing but prints information about the `evmodel` object
@@ -572,23 +656,82 @@ tidy_models <- function(user_models_df) {
 #'
 print.evmodel <- function(x, ...) {
   m <- x$models
-  cat('EV sessions model of class "evmodel", created on', as.character(x$metadata$creation), '\n')
+  cat(
+    'EV sessions model of class "evmodel", created on',
+    as.character(x$metadata$creation),
+    '\n'
+  )
   cat('Timezone of the model:', x$metadata$tzone, '\n')
   cat('The Gaussian Mixture Models of EV user profiles are built in:\n')
-  cat('  - Connection Models:', if (x$metadata$connection_log) "logarithmic" else "natural", 'scale\n')
-  cat('  - Energy Models:', if (x$metadata$energy_log) "logarithmic" else "natural", 'scale\n')
+  cat(
+    '  - Connection Models:',
+    if (x$metadata$connection_log) "logarithmic" else "natural",
+    'scale\n'
+  )
+  cat(
+    '  - Energy Models:',
+    if (x$metadata$energy_log) "logarithmic" else "natural",
+    'scale\n'
+  )
   cat('\nModel composed by', nrow(m), 'time-cycles:\n')
   for (n in seq_len(nrow(m))) {
     cat(
-      '  ', n, '. ', m[['time_cycle']][n], ':',
-      '\n     Months = ', if (length(m[['months']][[n]]) == 1) m[['months']][[n]][1] else
-        paste0(m[['months']][[n]][1], '-', m[['months']][[n]][length(m[['months']][[n]])]),
-      ', Week days = ', if (length(m[['wdays']][[n]]) == 1) m[['wdays']][[n]][1] else
-        paste0(m[['wdays']][[n]][1], '-', m[['wdays']][[n]][length(m[['wdays']])]),
-      '\n     User profiles = ', paste(m[['user_profiles']][[n]][['profile']], collapse = ", "),
-      '\n', sep = ''
+      '  ',
+      n,
+      '. ',
+      m[['time_cycle']][n],
+      ':',
+      '\n     Months = ',
+      if (length(m[['months']][[n]]) == 1) {
+        m[['months']][[n]][1]
+      } else {
+        paste0(
+          m[['months']][[n]][1],
+          '-',
+          m[['months']][[n]][length(m[['months']][[n]])]
+        )
+      },
+      ', Week days = ',
+      if (length(m[['wdays']][[n]]) == 1) {
+        m[['wdays']][[n]][1]
+      } else {
+        paste0(
+          m[['wdays']][[n]][1],
+          '-',
+          m[['wdays']][[n]][length(m[['wdays']][[n]])]
+        )
+      },
+      '\n     User profiles = ',
+      paste(m[['user_profiles']][[n]][['profile']], collapse = ", "),
+      '\n',
+      sep = ''
     )
   }
 }
 
 
+adapt_old_evmodel <- function(evmodel) {
+  models <- evmodel$models
+  for (tc in seq_len(nrow(models))) {
+    # Remove mclust component
+    tc_models <- models$user_profiles[[tc]]
+    tc_models <- dplyr::select(tc_models, -dplyr::any_of("mclust"))
+
+    # Adapt energy models by charging rate
+    for (p in seq_len(nrow(tc_models))) {
+      e_models <- tc_models$energy_models[[p]]
+      e_models2 <- dplyr::tibble(
+        charging_rate = "Unknown",
+        ratio = 1,
+        energy_models = list(e_models)
+      )
+      tc_models$energy_models[[p]] <- e_models2
+    }
+
+    models$user_profiles[[tc]] <- tc_models
+  }
+
+  evmodel$models <- models
+
+  return(evmodel)
+}

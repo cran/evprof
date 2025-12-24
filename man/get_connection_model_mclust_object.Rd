@@ -9,13 +9,12 @@ get_connection_model_mclust_object(
   k,
   mclust_tol = 1e-08,
   mclust_itmax = 10000,
-  log = FALSE,
+  log = getOption("evprof.log", FALSE),
   start = getOption("evprof.start.hour")
 )
 }
 \arguments{
-\item{sessions}{tibble, sessions data set in evprof
-\href{https://mcanigueral.github.io/evprof/articles/sessions-format.html}{standard format}.}
+\item{sessions}{tibble, sessions data set in evprof}
 
 \item{k}{number of clusters}
 

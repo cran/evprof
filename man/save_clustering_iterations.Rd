@@ -8,19 +8,18 @@ save_clustering_iterations(
   sessions,
   k,
   filename,
-  it = 12,
+  it = 6,
   seeds = round(runif(it, min = 1, max = 1000)),
   plot_scale = 2,
   points_size = 0.25,
   mclust_tol = 1e-08,
   mclust_itmax = 10000,
-  log = FALSE,
+  log = getOption("evprof.log", FALSE),
   start = getOption("evprof.start.hour")
 )
 }
 \arguments{
-\item{sessions}{tibble, sessions data set in evprof
-\href{https://mcanigueral.github.io/evprof/articles/sessions-format.html}{standard format}.}
+\item{sessions}{tibble, sessions data set in evprof standard format}
 
 \item{k}{number of clusters}
 

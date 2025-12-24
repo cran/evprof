@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(evprof)
 ```
 
-The EV model object defined by `{evprof}` is generated with function `get_ev_model()`. This function returns an object of class `evmodel`. This object prints a summary of its components. The package provides an example of `evmodel` created in the [California study case article](https://mcanigueral.github.io/evprof/articles/california.html), using the charging sessions data provided by [ACN](https://acnportal.readthedocs.io/en/latest/).
+The EV model object defined by `{evprof}` is generated with function `get_ev_model()`. This function returns an object of class `evmodel`. This object prints a summary of its components. The package provides an example of `evmodel` created in the [California study case article](https://resourcefully-dev.github.io/evprof/articles/california.html), using the charging sessions data provided by [ACN](https://acnportal.readthedocs.io/en/latest/).
 
 ```{r ev_model}
 evprof::california_ev_model

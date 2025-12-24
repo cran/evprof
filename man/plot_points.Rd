@@ -4,11 +4,15 @@
 \alias{plot_points}
 \title{Scatter plot of sessions}
 \usage{
-plot_points(sessions, start = getOption("evprof.start.hour"), log = FALSE, ...)
+plot_points(
+  sessions,
+  start = getOption("evprof.start.hour"),
+  log = getOption("evprof.log", FALSE),
+  ...
+)
 }
 \arguments{
-\item{sessions}{tibble, sessions data set in evprof
-\href{https://mcanigueral.github.io/evprof/articles/sessions-format.html}{standard format}.}
+\item{sessions}{tibble, sessions data set in evprof standard format}
 
 \item{start}{integer, start hour in the x axis of the plot.}
 

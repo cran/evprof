@@ -9,12 +9,11 @@ plot_density_2D(
   bins = 15,
   by = c("wday", "month", "year"),
   start = getOption("evprof.start.hour"),
-  log = FALSE
+  log = getOption("evprof.log", FALSE)
 )
 }
 \arguments{
-\item{sessions}{tibble, sessions data set in evprof
-\href{https://mcanigueral.github.io/evprof/articles/sessions-format.html}{standard format}.}
+\item{sessions}{tibble, sessions data set in evprof standard format}
 
 \item{bins}{integer, parameter to pass to \code{ggplot2::stat_density_2d}}
 
